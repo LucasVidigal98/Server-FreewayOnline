@@ -22,30 +22,35 @@ public class ServerGame {
     public static int numberConnections = 0;
     public static int portBase = 10000;
     public Integer[][] pos = new Integer[4][4];
-    public static int[] count = new int[4];
-    public static int lose;
+    public int[] count = new int[4];
+    public int lose;
     
+    /* Verifica o fim do jogo */
     public class ThreadWin extends Thread{
         
         public int id;
+        public ServerGame room;
         
-        public ThreadWin(int id){
+        public ThreadWin(int id, ServerGame room){
             this.id = id;
+            this.room = room;
         }
         
         @Override
         public void run(){
             
-            lose = 0;
-            count[0] = 0;
-            count[1] = 0;
-            count[2] = 0;
-            count[3] = 0;
+            /* inicia os vetores de travessias (count) e a variável de mortes (lose) */
+            room.lose = 0;
+            room.count[0] = 0;
+            room.count[1] = 0;
+            room.count[2] = 0;
+            room.count[3] = 0;
             
             boolean win = false, lost = false;
             int port = 0;
             int winner = 0;
             
+            /* relaciona o id das galinhas às portas */
             if (id == 0) port = ServerGame.portBase+400;
             else if (id == 1) port = ServerGame.portBase+401;
             else if (id == 2) port = ServerGame.portBase+402;
@@ -59,9 +64,9 @@ public class ServerGame {
                 Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
             }
             
-            System.out.println(" & Servidor conectado na porta " + port);
+            System.out.println(" - Servidor conectado na porta " + port);
             
-            while(true){
+            while(true){ /* Durante todo o funcionamento do jogo */
                 
                 Socket client = null;
                 ObjectOutputStream io = null;
@@ -72,21 +77,23 @@ public class ServerGame {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 
-                if(count[0] >= 3){
+                /* verifica se alguma galinha atravessou 3 vezes */
+                if(room.count[0] >= 3){
                     win = true;
                     winner = 0;
-                }else if(count[1] >= 3){
+                }else if(room.count[1] >= 3){
                     win = true;
                     winner = 1;
-                }else if(count[2] >= 3){
+                }else if(room.count[2] >= 3){
                     win = true;
                     winner = 1;
-                }else if(count[3] >= 3){
+                }else if(room.count[3] >= 3){
                     win = true;
                     winner = 3;
                 }
                 
-                if(lose >= 4) lost = true;
+                /* verifica se todas as galinhas morreram */
+                if(room.lose >= 4) lost = true;
                 
                 try {
                     io = new ObjectOutputStream(client.getOutputStream());
@@ -100,7 +107,7 @@ public class ServerGame {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 
-                if(win){
+                if(win){ //verifica qual galinha venceu
                     
                     String w = "";
                     
@@ -119,70 +126,78 @@ public class ServerGame {
                             Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }else if(winner == 2){
-                        w = "A galinha laranja Venceu!";
+                        w = "A galinha preta Venceu!";
                         try {
                             io.writeObject(w);
                         } catch (IOException ex) {
                             Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }else if(winner == 3){
-                        w = "A galinha preta Venceu";
+                        w = "A galinha laranja Venceu";
                         try {
                             io.writeObject(w);
                         } catch (IOException ex) {
                             Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                         }
                         
-                        try {
-                            io.close();
-                        } catch (IOException ex) {
-                            Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                        
-                        pos[0][1] = 44;
-                        pos[0][2] = 600;
-                        pos[1][1] = 364;
-                        pos[1][2] = 600;
-                        pos[2][1] = 626;
-                        pos[2][2] = 600;
-                        pos[3][1] = 940;
-                        pos[3][2] = 600; 
-                        
-                        //break;
                     }
+                    
+                    try {
+                        io.close();
+                    } catch (IOException ex) {
+                        Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+
+                    room.pos[0][1] = 44;
+                    room.pos[0][2] = 600;
+                    room.pos[1][1] = 364;
+                    room.pos[1][2] = 600;
+                    room.pos[2][1] = 626;
+                    room.pos[2][2] = 600;
+                    room.pos[3][1] = 940;
+                    room.pos[3][2] = 600;
+
+                    try {
+                        client.close();
+                    } catch (IOException ex) {
+                        Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    
+                    break;
                     
                 }else{
                     
-                    String w = "NULL";
-                    
-                    try {
-                        io.writeObject(w);
-                    } catch (IOException ex) {
-                        Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
+                    if(lost){ // Verifica se todas as galinhas morreram
+                        String l = "Todas as galinhas morreram!!";
+                        try {
+                            io.writeObject(l);
+                        } catch (IOException ex) {
+                            Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+
+                        /* reseta as posições */
+                        room.pos[0][1] = 44;
+                        room.pos[0][2] = 600;
+                        room.pos[1][1] = 364;
+                        room.pos[1][2] = 600;
+                        room.pos[2][1] = 626;
+                        room.pos[2][2] = 600;
+                        room.pos[3][1] = 940;
+                        room.pos[3][2] = 600; 
+                        
+                        break;
+                        
+                    }else{ //jogo continua
+                        String w = "NULL";
+
+                        try {
+                            io.writeObject(w);
+                        } catch (IOException ex) {
+                            Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
+                        }
                     }
                 }
-                
-                if(lost){
-                    String l = "Todas as galinhas morreram!!";
-                    System.out.println("Vai mandar " + l);
-                    try {
-                        io.writeObject(l);
-                    } catch (IOException ex) {
-                        Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                    
-                    pos[0][1] = 44;
-                    pos[0][2] = 600;
-                    pos[1][1] = 364;
-                    pos[1][2] = 600;
-                    pos[2][1] = 626;
-                    pos[2][2] = 600;
-                    pos[3][1] = 940;
-                    pos[3][2] = 600;
-                    
-                    //break;
-                }
-                
+      
                 try {
                     io.close();
                 } catch (IOException ex) {
@@ -198,29 +213,32 @@ public class ServerGame {
         }
     }
    
+    /* Escuta requisição dos clientes */
     public class ThreadListen extends Thread{
         
         public int id;
+        public ServerGame room;
         
         @Override
         public void run(){
             ServerSocket server = null;
             int port = 0;
             
+            /* relaciona os ids às portas */
             if (id == 0) port = ServerGame.portBase+200;
             else if (id == 1) port = ServerGame.portBase+201;
             else if (id == 2) port = ServerGame.portBase+202;
             else if (id == 3) port = ServerGame.portBase+203;
             
-             try {
+            try {
                server = new ServerSocket(port);
             } catch (IOException ex) {
                 Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
             }
-            
+             
             System.out.println(" * Servidor conectado na porta " + port);
-            
-            while(true){
+        
+            while(true){ /* enquanto o jogo funcionar */
                 Socket client = null;
                 ObjectInputStream io = null;
                 
@@ -237,7 +255,7 @@ public class ServerGame {
                 }
 
                 try {
-                    pos[this.id] = (Integer[])io.readObject();
+                    room.pos[this.id] = (Integer[])io.readObject(); //recebe a posição da galinha
                 } catch (IOException ex) {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (ClassNotFoundException ex) {
@@ -250,59 +268,56 @@ public class ServerGame {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 
-                if(pos[this.id][2] == -16){
-                    count[this.id]++;
+                if(room.pos[this.id][2] == -16){ //conta quantas vezes a galinha conseguiu atravessar 
+                    room.count[this.id]++;
                 }
                 
-                if(pos[this.id][2] == -200){
-                    lose++;
+                if(room.pos[this.id][2] == -200){ //retira as galinhas que perderem todas as vidas
+                    room.lose++;
                 }
-                
-                System.out.println(pos[this.id][0]);
-                System.out.println(pos[this.id][1]);
-                System.out.println(pos[this.id][2]);
-                
             }
         }
     }
     
+    /* Envia as posições das galinhas para o cliente */
     public class ThreadSend extends Thread{
         
         public int id;
+        public ServerGame room;
         
         @Override
         public void run(){
             ServerSocket server = null;
             int port = 0;
             
+            /* Associa os ids das galinhas às threads */
             if (id == 0) port = ServerGame.portBase+100;
             else if (id == 1) port = ServerGame.portBase+101;
             else if (id == 2) port = ServerGame.portBase+102;
             else if (id == 3) port = ServerGame.portBase+103;
             
+            System.out.println(" - Servidor conectado na porta " + port);
+            
             try {
-               server = new ServerSocket(port);
+               server = new ServerSocket(port); //inicia uma porta no servidor
             } catch (IOException ex) {
                 Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
             }
             
-            System.out.println(" - Servidor conectado na porta " + port);
-            
-            while(true){
+            while(true){ //espera a conexão de todas as galinhas para iniciar o jogo
                 Socket client = null;
                 boolean play = false;
                 
                 try {
-                    client = server.accept();
+                    client = server.accept(); //espera a conexão com o cliente
                 } catch (IOException ex) {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 
-                //System.out.println("Cliente conectado " + client.getInetAddress() + " Porta " + port);
                 ObjectOutputStream io = null;
                 
                 try {
-                    io = new ObjectOutputStream(client.getOutputStream());
+                    io = new ObjectOutputStream(client.getOutputStream()); //manda dados de entrada e saída
                 } catch (IOException ex) {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -313,7 +328,7 @@ public class ServerGame {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 
-                if(numberConnections >= 4){
+                if(numberConnections >= 4){ //permite o início do jogo quando quatro galinhas estão conectadas
                     play = true;
                     try {
                        io.writeObject(play);
@@ -344,22 +359,22 @@ public class ServerGame {
                 
             }
             
-            System.out.println("Começa o jogo");
-            ThreadListen t = new ThreadListen();
+            ThreadListen t = new ThreadListen(); //recebe as posições dos cientes
             t.id = this.id;
+            t.room = this.room;
             t.start();
             
-            new ThreadWin(this.id).start();
+            new ThreadWin(this.id, this.room).start(); //verifica se uma galinha ganhou ou se todas morreram
             
             try {
-               server = new ServerSocket(port+200);
+               server = new ServerSocket(port+200); //inicia uma nova porta para enviar a posição das galinhas
             } catch (IOException ex) {
                 Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
             }
             
             System.out.println(" + Servidor conectado na porta " + (port+200));
             
-            while(true){
+            while(true){ //enquanto uma galinha não ganha ou todas estão vivas
                 Socket client = null;
                 boolean play = false;
                 
@@ -369,7 +384,6 @@ public class ServerGame {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 
-                //System.out.println("Cliente conectado " + client.getInetAddress() + " Porta " + port);
                 ObjectOutputStream io = null;
                 
                 try {
@@ -385,7 +399,7 @@ public class ServerGame {
                 }
                 
                 try {
-                    io.writeObject(pos);
+                    io.writeObject(room.pos); //envia uma matriz com a posição das galinhas para todos os clientes
                 } catch (IOException ex) {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -405,19 +419,21 @@ public class ServerGame {
         }    
     }
     
+    /* Abre a conexão com o cliente e designa a porta de comunicação */
     public class ThreadConnection extends Thread{
         
         public int id;
+        public ServerGame room;
      
         @Override
         public void run(){
             
             Integer[] vec = new Integer[2];
             ServerSocket server = null;
-            int port = ServerGame.portBase;
+            int port = 6790;
             
             try {
-               server = new ServerSocket(port);
+               server = new ServerSocket(port); //inicia o servidor na porta 10.000
             } catch (IOException ex) {
                 Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -427,26 +443,25 @@ public class ServerGame {
             while(true){
                 Socket client = null;
                 
-                try {
+                try { //espera a requisição do cliente
                     client = server.accept();
                 } catch (IOException ex) {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 
-                if(numberConnections == 4) {
+                if(numberConnections == 4) { //a cada 4 conexões, "reinicia" o servidor para uma nova partida
                     numberConnections = 0;
                     ServerGame.portBase += 1000;
+                    this.room = new ServerGame();
                 }
                 
-                vec[0] = numberConnections;
-                vec[1] = ServerGame.portBase;
+                vec[0] = numberConnections; //id da galinha
+                vec[1] = ServerGame.portBase; //porta base
                 
-                
-                //System.out.println("Cliente conectado " + client.getInetAddress() + " Porta " + port);
                 ObjectOutputStream io = null;
                 
                 try {
-                    io = new ObjectOutputStream(client.getOutputStream());
+                    io = new ObjectOutputStream(client.getOutputStream()); //objeto de escrita
                 } catch (IOException ex) {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -458,41 +473,45 @@ public class ServerGame {
                 }
                 
                 try {
-                   io.writeObject(vec);
+                   io.writeObject(vec); //manda informações do jogador para o cliente
                    numberConnections++;
                 } catch (IOException ex) {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 } 
                 
                 try {
-                    io.close();
+                    io.close(); //fecha o buffer de escrita
                 } catch (IOException ex) {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 
                 try {
-                    client.close();
+                    client.close(); //fecha a conexão com o cliente
                 } catch (IOException ex) {
                     Logger.getLogger(ServerGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 
-                ThreadSend t = new ThreadSend();
+                ThreadSend t = new ThreadSend(); //thread que manda os dados da galinha para o cliente
                 t.id = numberConnections-1;
+                t.room = this.room;
                 t.start();
             }
         }
     }
     
-    public void init(){
+    /* inicia a thread de conexão */
+    public void init(ServerGame room){
         
         ThreadConnection t1 = new ThreadConnection();
         t1.id = 0;
+        t1.room = room;
         t1.start();
     }
     
     public static void main(String[] args) {
         
-        new ServerGame().init();
+        ServerGame room = new ServerGame();
+        room.init(room);
         
     }
 }
